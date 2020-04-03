@@ -20,9 +20,18 @@ along with langs.  If not, see <https://www.gnu.org/licenses/>.
 import html
 import re
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 
 class LangsFormatMap(dict):
+    def __getitem__(self, key):
+        if key in self:
+            if type(self.get(key)) == str:
+                return html.escape(self.get(key)) if self.escape_html else self.get(key)
+            else:
+                return self.get(key)
+        else:
+           return self.__missing__(key)
+   
     def __missing__(self, key):
         return '{'+key+'}'
 
@@ -33,13 +42,9 @@ class LangString(str):
         except:
             result = key
         
-        if self.escape_html:
-            kwargs = map(
-                lambda item: (item[0],html.escape(item[1])),
-                kwargs.items()
-            )
-            kwargs = dict(kwargs)
-        return result.format_map(LangsFormatMap(**kwargs))
+        mapping = LangsFormatMap(**kwargs)
+        mapping.escape_html = self.escape_html
+        return result.format_map(mapping)
         
 class Langs:
     def __init__(self, strings={}, escape_html=False, **kwargs):
