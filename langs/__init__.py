@@ -20,7 +20,7 @@ along with langs.  If not, see <https://www.gnu.org/licenses/>.
 import html
 import re
 
-__version__ = "0.0.4"
+__version__ = "0.0.45"
 
 class LangsFormatMap(dict):
     def __getitem__(self, key):
