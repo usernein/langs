@@ -20,7 +20,7 @@ along with langs.  If not, see <https://www.gnu.org/licenses/>.
 import html
 import re
 
-__version__ = "0.0.45"
+__version__ = "0.0.5"
 
 class LangsFormatMap(dict):
     def __getitem__(self, key):
@@ -59,24 +59,35 @@ class Langs:
             self.strings[language_code].update({'language_code': language_code})
         
         #self.strings = {'en':{'start':'Hi {name}!'}}
-        self.languages = list(self.strings.keys())
-        self.language = 'en' if 'en' in self.languages else self.languages[0]
+        self.available = list(self.strings.keys())
+        self.code = 'en' if 'en' in self.available else self.available[0]
         
     def __getattr__(self, key):
         try:
-            result = self.strings[self.language][key]
+            result = self.strings[self.code][key]
         except:
             result = key
         obj = LangString(result)
         obj.escape_html=self.escape_html
         return obj
+        
+    def normalize_code(self, language_code):
+        only_az = re.sub('[^a-z]', '', (language_code or ''))
+        return only_az.lower()
+        
     
-    def getLanguage(self, language_code):
-        clean_lang_code = re.sub('[^a-z]', '', (language_code or '').lower())
+    def get_language(self, language_code):
+        clean_lang_code = self.normalize_code(language_code)
         if not clean_lang_code:
             raise ValueError('Invalid language_code')
             
         lang_copy = Langs(strings=self.strings, escape_html=self.escape_html)
-        if clean_lang_code in lang_copy.languages:
-            lang_copy.language = clean_lang_code
+        if clean_lang_code in lang_copy.available:
+            lang_copy.code = clean_lang_code
+        elif clean_lang_code[:2] in lang_copy.available:
+            lang_copy.code = clean_lang_code[:2]
         return lang_copy
+    
+    def getLanguage(self, *args, **kwargs):
+        print("Langs.getLanguage is deprecated and will be removed soon. Use Langs.get_language instead")
+        return self.get_language(*args, **kwargs)
