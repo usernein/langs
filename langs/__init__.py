@@ -20,7 +20,7 @@ along with langs.  If not, see <https://www.gnu.org/licenses/>.
 import html
 import re
 
-__version__ = "0.0.5"
+__version__ = "0.1.0"
 
 class LangsFormatMap(dict):
     def __getitem__(self, key):
@@ -33,6 +33,8 @@ class LangsFormatMap(dict):
            return self.__missing__(key)
    
     def __missing__(self, key):
+        if self.debug:
+            print(f'Key "{key}" is missing on the string "{self.string}", language "{self.code}"')
         return '{'+key+'}'
 
 class LangString(str):
@@ -44,10 +46,18 @@ class LangString(str):
         
         mapping = LangsFormatMap(**kwargs)
         mapping.escape_html = self.escape_html
+        mapping.string = self.key
+        mapping.code = self.code
+        mapping.debug = self.debug
         return result.format_map(mapping)
         
 class Langs:
-    def __init__(self, strings={}, escape_html=False, **kwargs):
+    strings = {}
+    escape_html = False
+    available = []
+    code = 'en'
+    
+    def __init__(self, strings={}, escape_html=False, debug=True, **kwargs):
         self.strings = strings
         self.escape_html = escape_html
         
@@ -61,7 +71,8 @@ class Langs:
         #self.strings = {'en':{'start':'Hi {name}!'}}
         self.available = list(self.strings.keys())
         self.code = 'en' if 'en' in self.available else self.available[0]
-        
+        self.debug = debug
+    
     def __getattr__(self, key):
         try:
             result = self.strings[self.code][key]
@@ -69,6 +80,9 @@ class Langs:
             result = key
         obj = LangString(result)
         obj.escape_html=self.escape_html
+        obj.key = key
+        obj.code = self.code
+        obj.debug = self.debug
         return obj
         
     def normalize_code(self, language_code):
