@@ -20,11 +20,12 @@ along with langs.  If not, see <https://www.gnu.org/licenses/>.
 import html
 import re
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 class LangsFormatMap(dict):
     def __getitem__(self, key):
         if key in self:
+            self.used.append(key)
             if type(self.get(key)) == str:
                 return html.escape(self.get(key)) if self.escape_html else self.get(key)
             else:
@@ -39,34 +40,38 @@ class LangsFormatMap(dict):
 
 class LangString(str):
     def __call__(self, **kwargs):
-        try:
-            result = self
-        except:
-            result = key
-        
         mapping = LangsFormatMap(**kwargs)
         mapping.escape_html = self.escape_html
         mapping.string = self.key
         mapping.code = self.code
         mapping.debug = self.debug
-        return result.format_map(mapping)
+        mapping.used = []
+        formatted = self.format_map(mapping)
+        
+        not_used = [key for key in kwargs.keys() if key not in mapping.used]
+        if self.debug and len(not_used):
+            for key in not_used:
+                print(f'The parameter "{key}" was passed to the string "{self.key}" (language "{self.code}") but was not used')
+            print('')
+        return formatted
         
 class Langs:
     strings = {}
     escape_html = False
     available = []
     code = 'en'
+    debug = True 
     
     def __init__(self, strings={}, escape_html=False, debug=True, **kwargs):
         self.strings = strings
         self.escape_html = escape_html
         
         if not kwargs and not strings:
-            raise ValueError('Pass the languages and the path to their JSON files as keyword arguments (language=path)')
+            raise ValueError('Pass the language codes and their objects (dictionaries containing the strings) as keyword arguments (language=dict)')
 
         for language_code,strings_object in kwargs.items():
             self.strings[language_code] = strings_object
-            self.strings[language_code].update({'language_code': language_code})
+            self.strings[language_code].update({'LANGUAGE_CODE': language_code})
         
         #self.strings = {'en':{'start':'Hi {name}!'}}
         self.available = list(self.strings.keys())
@@ -91,9 +96,7 @@ class Langs:
         
     
     def get_language(self, language_code):
-        clean_lang_code = self.normalize_code(language_code)
-        if not clean_lang_code:
-            raise ValueError('Invalid language_code')
+        clean_lang_code = self.normalize_code(language_code) or 'en'
             
         lang_copy = Langs(strings=self.strings, escape_html=self.escape_html)
         if clean_lang_code in lang_copy.available:
